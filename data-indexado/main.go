@@ -19,6 +19,7 @@ const (
 
 func main() {
 
+	startTime := time.Now()
 	// Iniciar servidor de profiling, goroutine separada
 	go func() {
 		fmt.Println("Iniciando servidor de profiling en :6060")
@@ -69,6 +70,8 @@ func main() {
 	
 		fmt.Println("Todos los correos han sido indexados.")
 		fmt.Println("Programa finalizado. Manteniendo servidor activo...")
+		elapsed := time.Since(startTime)
+		fmt.Printf("Tiempo total de indexación: %s\n", elapsed)
 		time.Sleep(30 * time.Minute) // Mantener activo para analizar desde /pprof
 
 }
