@@ -12,13 +12,11 @@ import (
 
 func main() {
 
-	// Cargar variables desde .env
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
 
-	// Cambiar a http.Handle
 	http.Handle("/", middlewares.HandleCORS(http.DefaultServeMux))
 	http.Handle("/search", middlewares.HandleCORS(http.HandlerFunc(handlers.SearchHandler)))
 

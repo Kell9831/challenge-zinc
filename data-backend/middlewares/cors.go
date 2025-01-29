@@ -8,7 +8,6 @@ func HandleCORS(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
-		// Manejo de preflight OPTIONS
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
 			return

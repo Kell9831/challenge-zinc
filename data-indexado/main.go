@@ -19,7 +19,7 @@ const (
 
 func main() {
 
-	// Iniciar servidor de profiling en una goroutine separada
+	// Iniciar servidor de profiling, goroutine separada
 	go func() {
 		fmt.Println("Iniciando servidor de profiling en :6060")
 		http.ListenAndServe("localhost:6060", nil)
@@ -44,7 +44,7 @@ func main() {
 		fmt.Println("Iniciando perfil de CPU")
 		pprof.StartCPUProfile(cpuProfileFile)
 
-		  // Lógica de tu programa
+		  // Lógica del programa
 		emailFiles := make(chan string, maxWorkers)
 		var wg sync.WaitGroup
 

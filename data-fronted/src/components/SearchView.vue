@@ -82,7 +82,6 @@
 import { ref, computed } from 'vue';
 import { useSearchStore } from '@/stores/search';
 
-// Definir los tipos para los resultados de búsqueda
 export interface Email {
   subject: string;
   from: string;
@@ -102,21 +101,20 @@ export default {
     const debouncedSearch = () => {
       clearTimeout(debounceTimeout);
       debounceTimeout = setTimeout(() => {
-        store.query = query.value; // Actualiza el query en el store
+        store.query = query.value; 
         store.fetchResults(store.query, 1, store.resultsPerPage);
       }, 500);
     };
-    // Función para manejar el cambio de tamaño
+ 
     const fetchData = () => {
-      store.fetchResults(query.value, 1, store.resultsPerPage); // Reiniciar en página 1
+      store.fetchResults(query.value, 1, store.resultsPerPage); 
     };
 
-    // Sincronizar `resultsPerPage` entre el componente y la tienda
     const resultsPerPage = computed({
       get: () => store.resultsPerPage,
       set: (value: number) => {
-        store.resultsPerPage = value; // Actualizar en la tienda
-        fetchData(); // Llamar a fetchData después del cambio
+        store.resultsPerPage = value;
+        fetchData(); 
       },
     });
 

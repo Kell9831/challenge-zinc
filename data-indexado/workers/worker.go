@@ -12,7 +12,6 @@ func Worker(emailFiles chan string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for filePath := range emailFiles {
 
-		// Parsear el archivo a una estructura Email
 		email, err := enron_email.ParseEmail(filePath)
 		if err != nil {
 			fmt.Printf("Error procesando archivo %s: %v\n", filePath, err)

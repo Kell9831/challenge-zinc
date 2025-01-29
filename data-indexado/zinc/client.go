@@ -15,7 +15,6 @@ const (
 
 func IndexEmail(email *Email) error {
 
-	//convierte el mapa en JSON
 	emailJSON, err := json.Marshal(email)
 	if err != nil {
 		return err
@@ -23,17 +22,14 @@ func IndexEmail(email *Email) error {
 
 	payload := bytes.NewBuffer([]byte(`{"index": {"_index": "enron"}}` + "\n" + string(emailJSON) + "\n"))
 
-    //crea la solicitud http
 	req, err := http.NewRequest("POST", zincURL, payload)
 	if err != nil {
 		return err
 	}
 
-	//Agregar Autenticación y Encabezados
 	req.SetBasicAuth(zincUser, zincPassword)
 	req.Header.Set("Content-Type", "application/json")
 
-	//Enviar la Solicitud HTTP
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
