@@ -13,34 +13,32 @@ const (
 	zincPassword = "Complexpass#123"
 )
 
-func IndexEmail(email *Email) error {
+var client = &http.Client{}
 
-	//convierte el mapa en JSON
-	emailJSON, err := json.Marshal(email)
+func IndexEmails(emails []*Email) error {
+	var payload bytes.Buffer
+	for _, email := range emails {
+		meta := `{"index": {"_index": "enron"}}`
+		emailJSON, err := json.Marshal(email)
+		if err != nil {
+			return err
+		}
+		payload.WriteString(meta + "\n")
+		payload.Write(emailJSON)
+		payload.WriteString("\n")
+	}
+
+	req, err := http.NewRequest("POST", zincURL, &payload)
 	if err != nil {
 		return err
 	}
-
-	payload := bytes.NewBuffer([]byte(`{"index": {"_index": "enron"}}` + "\n" + string(emailJSON) + "\n"))
-
-    //crea la solicitud http
-	req, err := http.NewRequest("POST", zincURL, payload)
-	if err != nil {
-		return err
-	}
-
-	//Agregar Autenticación y Encabezados
 	req.SetBasicAuth(zincUser, zincPassword)
 	req.Header.Set("Content-Type", "application/json")
 
-	//Enviar la Solicitud HTTP
-	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
-
-	//asegura que el cuerpo de la respuesta se cierre después de leerla, evitando fugas de recursos.
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
@@ -48,3 +46,4 @@ func IndexEmail(email *Email) error {
 	}
 	return nil
 }
+

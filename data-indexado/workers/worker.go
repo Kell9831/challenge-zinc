@@ -5,25 +5,54 @@ import (
 	"Kell9831/challenge-zinc/zinc"
 	"fmt"
 	"sync"
+	"sync/atomic"
 )
 
-// procesa los correos
-func Worker(emailFiles chan string, wg *sync.WaitGroup) {
-	defer wg.Done()
-	for filePath := range emailFiles {
+const batchSize = 100
+var indexedCount uint64
 
-		// Parsear el archivo a una estructura Email
+func Worker(emailFiles chan string, wg *sync.WaitGroup, batchChan chan []*zinc.Email) {
+	defer wg.Done()
+	batch := make([]*zinc.Email, 0, batchSize)
+
+	for filePath := range emailFiles {
 		email, err := enron_email.ParseEmail(filePath)
 		if err != nil {
 			fmt.Printf("Error procesando archivo %s: %v\n", filePath, err)
 			continue
 		}
+		batch = append(batch, email)
 
-		err = zinc.IndexEmail(email)
+		// Enviar el batch si alcanza el tamaño máximo
+		if len(batch) == batchSize {
+			batchChan <- batch
+			batch = make([]*zinc.Email, 0, batchSize)
+		}
+	}
+
+	// Enviar cualquier correo restante en el último batch
+	if len(batch) > 0 {
+		batchChan <- batch
+	}
+}
+
+func BatchIndexer(batchChan chan []*zinc.Email, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for batch := range batchChan {
+		err := zinc.IndexEmails(batch)
 		if err != nil {
-			fmt.Printf("Error indexando correo: %v\n", err)
-		} else {
-			fmt.Printf("Correo indexado: %s\n", filePath)
+			fmt.Printf("Error indexando batch: %v\n", err)
+			continue
+		}
+
+		count := atomic.AddUint64(&indexedCount, uint64(len(batch)))
+		if count%100 == 0 {
+			fmt.Printf("Correos indexados: %d\n", count)
+		}
+
+		for _, email := range batch {
+			enron_email.ReleaseEmail(email)
 		}
 	}
 }
+

@@ -17,3 +17,4 @@ func Walk(root string, files chan string) error {
 		return nil
 	})
 }
+

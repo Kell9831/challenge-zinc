@@ -3,13 +3,13 @@ package main
 import (
 	"Kell9831/challenge-zinc/enron_email"
 	"Kell9831/challenge-zinc/workers"
+	"Kell9831/challenge-zinc/zinc"
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"runtime/pprof"
 	"sync"
-	"time"
 )
 
 const (
@@ -17,59 +17,72 @@ const (
 	maxWorkers  = 10
 )
 
-func main() {
+func startWorkers(emailFiles chan string, batchChan chan []*zinc.Email, numWorkers int, wg *sync.WaitGroup) {
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
+		go workers.Worker(emailFiles, wg, batchChan)
+	}
+}
 
-	// Iniciar servidor de profiling en una goroutine separada
+func startBatchIndexers(batchChan chan []*zinc.Email, numIndexers int, wg *sync.WaitGroup) {
+	for i := 0; i < numIndexers; i++ {
+		wg.Add(1)
+		go workers.BatchIndexer(batchChan, wg)
+	}
+}
+
+func main() {
+	// Iniciar servidor de profiling
 	go func() {
 		fmt.Println("Iniciando servidor de profiling en :6060")
-		http.ListenAndServe("localhost:6060", nil)
+		if err := http.ListenAndServe("localhost:6060", nil); err != nil {
+			fmt.Printf("Error iniciando servidor de profiling: %v\n", err)
+		}
 	}()
 
-	    // Crear archivos para perfiles
-		cpuProfileFile, err := os.Create("cpu_profile.prof")
+	// Crear perfiles de CPU y memoria
+	cpuProfileFile, err := os.Create("cpu_profile.prof")
+	if err != nil {
+		fmt.Printf("Error creando archivo de perfil de CPU: %v\n", err)
+		return
+	}
+	defer cpuProfileFile.Close()
+
+	memProfileFile, err := os.Create("heap_profile.prof")
+	if err != nil {
+		fmt.Printf("Error creando archivo de perfil de memoria: %v\n", err)
+		return
+	}
+	defer memProfileFile.Close()
+
+	pprof.StartCPUProfile(cpuProfileFile)
+	defer pprof.StopCPUProfile()
+
+	emailFiles := make(chan string, maxWorkers*2)
+	batchChan := make(chan []*zinc.Email, maxWorkers)
+	var wg sync.WaitGroup
+	var wgBatchIndexer sync.WaitGroup
+
+	startWorkers(emailFiles, batchChan, maxWorkers, &wg)
+	startBatchIndexers(batchChan, 2, &wgBatchIndexer)
+
+	// Recorrer el directorio
+	go func() {
+		err := enron_email.Walk(maildirPath, emailFiles)
 		if err != nil {
-			fmt.Println("Error al crear archivo de perfil de CPU:", err)
-			return
+			fmt.Printf("Error procesando maildir: %v\n", err)
 		}
-		defer cpuProfileFile.Close()
-	
-		memProfileFile, err := os.Create("heap_profile.prof")
-		if err != nil {
-			fmt.Println("Error al crear archivo de perfil de memoria:", err)
-			return
-		}
-		defer memProfileFile.Close()
-	
-		// Iniciar profiling de CPU
-		fmt.Println("Iniciando perfil de CPU")
-		pprof.StartCPUProfile(cpuProfileFile)
-
-		  // Lógica de tu programa
-		emailFiles := make(chan string, maxWorkers)
-		var wg sync.WaitGroup
-
-		for i := 0; i < maxWorkers; i++ {
-			wg.Add(1)
-			go workers.Worker(emailFiles, &wg)
-		}
-
-		err = enron_email.Walk(maildirPath, emailFiles)
-		if err != nil {
-		fmt.Printf("Error procesando maildir: %v\n", err)
-		}
-
 		close(emailFiles)
+	}()
 
-		wg.Wait()
-		pprof.StopCPUProfile()
+	go func() {
+		wg.Wait()       // Espera a los workers
+		close(batchChan) // Cierra el canal de batches
+	}()
 
-	    // Capturar perfil de memoria
-		fmt.Println("Capturando perfil de memoria")
-		pprof.WriteHeapProfile(memProfileFile)
-	
-		fmt.Println("Todos los correos han sido indexados.")
-		fmt.Println("Programa finalizado. Manteniendo servidor activo...")
-		time.Sleep(30 * time.Minute) // Mantener activo para analizar desde /pprof
+	wgBatchIndexer.Wait()
 
+	pprof.WriteHeapProfile(memProfileFile)
+	fmt.Println("Todos los correos han sido indexados.")
 }
 
