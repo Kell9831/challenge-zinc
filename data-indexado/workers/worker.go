@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 const batchSize = 100
@@ -40,12 +41,14 @@ func Worker(emailFiles chan string, wg *sync.WaitGroup, batchChan chan []*zinc.E
 func BatchIndexer(batchChan chan []*zinc.Email, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for batch := range batchChan {
+		startTime := time.Now()
 		err := zinc.IndexEmails(batch)
 		if err != nil {
 			fmt.Printf("Error indexando batch: %v\n", err)
 			continue
 		}
-
+		duration := time.Since(startTime)
+		fmt.Printf("Lote de %d correos indexado en %s\n", len(batch), duration)
 		count := atomic.AddUint64(&indexedCount, uint64(len(batch)))
 		if count%100 == 0 {
 			fmt.Printf("Correos indexados: %d\n", count)
