@@ -3,14 +3,21 @@ package enron_email
 import (
 	"Kell9831/challenge-zinc/zinc"
 	"bufio"
+	"fmt"
+	"os"
 	"strings"
 	"sync"
-	"os"
 )
 
 var emailPool = sync.Pool{
 	New: func() interface{} {
 		return &zinc.Email{}
+	},
+}
+
+var builderPool = sync.Pool{
+	New: func() interface{} {
+		return &strings.Builder{}
 	},
 }
 
@@ -21,18 +28,25 @@ func ParseEmail(filePath string) (*zinc.Email, error) {
 	}
 	defer file.Close()
 
-	email := emailPool.Get().(*zinc.Email)
+	// Obtener un objeto de zinc.Email del pool
+	emailInterface := emailPool.Get()
+	if emailInterface == nil {
+		return nil, fmt.Errorf("error: emailPool.Get() devolvió nil")
+	}
+	email := emailInterface.(*zinc.Email)
 	*email = zinc.Email{} // Resetear la estructura
 
+	builder := builderPool.Get().(*strings.Builder)
+	builder.Reset()
+
 	scanner := bufio.NewScanner(file)
-	var body strings.Builder
 	parsingBody := false
 
 	for scanner.Scan() {
 		line := scanner.Text()
 		if parsingBody {
-			body.WriteString(line)
-			body.WriteString("\n")
+			builder.WriteString(line)
+			builder.WriteString("\n")
 		} else {
 			if line == "" {
 				parsingBody = true
@@ -53,10 +67,15 @@ func ParseEmail(filePath string) (*zinc.Email, error) {
 			}
 		}
 	}
-	email.Body = body.String()
+	email.Body = builder.String()
+	builderPool.Put(builder)
 	return email, nil
 }
 
+
 func ReleaseEmail(email *zinc.Email) {
-	emailPool.Put(email)
+	if email != nil {
+		emailPool.Put(email)
+	}
 }
+

@@ -26,7 +26,10 @@ func Worker(emailFiles chan string, wg *sync.WaitGroup, batchChan chan []*zinc.E
 		// Enviar el batch si alcanza el tamaño máximo
 		if len(batch) == batchSize {
 			batchChan <- batch
-			batch = make([]*zinc.Email, 0, batchSize)
+			for i := range batch {
+				batch[i] = nil // Evita referencias pendientes
+			}
+			batch = batch[:0]
 		}
 	}
 
@@ -50,8 +53,9 @@ func BatchIndexer(batchChan chan []*zinc.Email, wg *sync.WaitGroup) {
 			fmt.Printf("Correos indexados: %d\n", count)
 		}
 
-		for _, email := range batch {
-			enron_email.ReleaseEmail(email)
+		for i := range batch {
+			enron_email.ReleaseEmail(batch[i])
+			batch[i] = nil
 		}
 	}
 }

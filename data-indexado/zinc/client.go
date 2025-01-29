@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"sync"
 )
 
 const (
@@ -15,31 +16,44 @@ const (
 
 var client = &http.Client{}
 
+var bufferPool = sync.Pool{
+	New: func ()  interface{}	{
+		return new(bytes.Buffer)
+	},
+}
+
 func IndexEmails(emails []*Email) error {
-	var payload bytes.Buffer
+	buffer := bufferPool.Get().(*bytes.Buffer)
+	buffer.Reset()
+
 	for _, email := range emails {
 		meta := `{"index": {"_index": "enron"}}`
-		emailJSON, err := json.Marshal(email)
+		buffer.WriteString(meta + "\n")
+		encoder := json.NewEncoder(buffer)
+		err := encoder.Encode(email)
 		if err != nil {
+			bufferPool.Put(buffer)
 			return err
 		}
-		payload.WriteString(meta + "\n")
-		payload.Write(emailJSON)
-		payload.WriteString("\n")
 	}
 
-	req, err := http.NewRequest("POST", zincURL, &payload)
+	req, err := http.NewRequest("POST", zincURL, buffer)
 	if err != nil {
+		bufferPool.Put(buffer)
 		return err
 	}
+
 	req.SetBasicAuth(zincUser, zincPassword)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := client.Do(req)
 	if err != nil {
+		bufferPool.Put(buffer)
 		return err
 	}
 	defer resp.Body.Close()
+
+	bufferPool.Put(buffer) // Reutilizar buffer
 
 	if resp.StatusCode != http.StatusOK {
 		return errors.New("error en respuesta de ZincSearch: " + resp.Status)
