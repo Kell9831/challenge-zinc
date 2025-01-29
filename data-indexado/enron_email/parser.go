@@ -28,7 +28,6 @@ func ParseEmail(filePath string) (*zinc.Email, error) {
 	}
 	defer file.Close()
 
-	// Obtener un objeto de zinc.Email del pool
 	emailInterface := emailPool.Get()
 	if emailInterface == nil {
 		return nil, fmt.Errorf("error: emailPool.Get() devolvió nil")

@@ -69,7 +69,6 @@ export const useSearchStore = defineStore('search', {
     },
 
     // Acción para avanzar a la siguiente página
-   // Acción para avanzar a la siguiente página
   nextPage() {
     if (this.currentPage < this.totalPages) {
     this.fetchResults(this.query, this.currentPage + 1, this.resultsPerPage);
