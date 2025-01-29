@@ -32,6 +32,7 @@ func startBatchIndexers(batchChan chan []*zinc.Email, numIndexers int, wg *sync.
 }
 
 func main() {
+	
 	// Iniciar servidor de profiling
 	go func() {
 		fmt.Println("Iniciando servidor de profiling en :6060")

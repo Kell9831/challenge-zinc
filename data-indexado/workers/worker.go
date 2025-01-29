@@ -22,8 +22,6 @@ func Worker(emailFiles chan string, wg *sync.WaitGroup, batchChan chan []*zinc.E
 			continue
 		}
 		batch = append(batch, email)
-
-		// Enviar el batch si alcanza el tamaño máximo
 		if len(batch) == batchSize {
 			batchChan <- batch
 			for i := range batch {
