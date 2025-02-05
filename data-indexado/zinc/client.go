@@ -4,15 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"os"
 	"sync"
 )
 
-const (
-	zincURL      = "http://localhost:4080/api/default/_bulk"
-	zincUser     = "admin"
-	zincPassword = "Complexpass#123"
-)
 
 var client = &http.Client{}
 
@@ -23,6 +20,13 @@ var bufferPool = sync.Pool{
 }
 
 func IndexEmails(emails []*Email) error {
+
+	zincURL := os.Getenv("ZINC_URL")
+	zincUser := os.Getenv("ZINC_USER")
+	zincPassword := os.Getenv("ZINC_PASSWORD")
+
+	fmt.Println(zincPassword)
+
 	buffer := bufferPool.Get().(*bytes.Buffer)
 	buffer.Reset()
 

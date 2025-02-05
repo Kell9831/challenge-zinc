@@ -5,11 +5,14 @@ import (
 	"Kell9831/challenge-zinc/workers"
 	"Kell9831/challenge-zinc/zinc"
 	"fmt"
+	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"runtime/pprof"
 	"sync"
+	"github.com/joho/godotenv"
+	"time"
 )
 
 const (
@@ -33,6 +36,12 @@ func startBatchIndexers(batchChan chan []*zinc.Email, numIndexers int, wg *sync.
 
 func main() {
 	
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
+
+
 	// Iniciar servidor de profiling
 	go func() {
 		fmt.Println("Iniciando servidor de profiling en :6060")
@@ -59,6 +68,8 @@ func main() {
 	pprof.StartCPUProfile(cpuProfileFile)
 	defer pprof.StopCPUProfile()
 
+	startTime := time.Now()
+
 	emailFiles := make(chan string, maxWorkers*2)
 	batchChan := make(chan []*zinc.Email, maxWorkers)
 	var wg sync.WaitGroup
@@ -84,6 +95,7 @@ func main() {
 	wgBatchIndexer.Wait()
 
 	pprof.WriteHeapProfile(memProfileFile)
-	fmt.Println("Todos los correos han sido indexados.")
+	totalDuration := time.Since(startTime)
+	fmt.Printf("Todos los correos han sido indexados en %s.\n", totalDuration)
 }
 
