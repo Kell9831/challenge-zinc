@@ -10,14 +10,21 @@ import (
 	"runtime/pprof"
 	"sync"
 	"time"
+	"github.com/joho/godotenv"
+	"log"
 )
 
 const (
-	maildirPath = "./enron_mail_20110402/maildir"
-	maxWorkers  = 10
+	maildirPath = "./enron_mail_20110402/maildir" 
+	maxWorkers  = 10 
 )
 
 func main() {
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
 
 	startTime := time.Now()
 	// Iniciar servidor de profiling, goroutine separada
@@ -46,6 +53,7 @@ func main() {
 		pprof.StartCPUProfile(cpuProfileFile)
 
 		  // Lógica del programa
+
 		emailFiles := make(chan string, maxWorkers)
 		var wg sync.WaitGroup
 
@@ -63,6 +71,7 @@ func main() {
 
 		wg.Wait()
 		pprof.StopCPUProfile()
+
 
 	    // Capturar perfil de memoria
 		fmt.Println("Capturando perfil de memoria")
