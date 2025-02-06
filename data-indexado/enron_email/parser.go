@@ -12,7 +12,7 @@ func ParseEmail(filePath string) (*zinc.Email, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	//recorre linea por linea
 	scanner := bufio.NewScanner(strings.NewReader(string(content)))
 	email := &zinc.Email{}
 	var body []string

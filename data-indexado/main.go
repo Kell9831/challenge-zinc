@@ -54,9 +54,10 @@ func main() {
 
 		  // Lógica del programa
 
-		emailFiles := make(chan string, maxWorkers)
+		emailFiles := make(chan string, maxWorkers)// para compartir rutas
 		var wg sync.WaitGroup
 
+		//lanza maxWorker gourutines
 		for i := 0; i < maxWorkers; i++ {
 			wg.Add(1)
 			go workers.Worker(emailFiles, &wg)

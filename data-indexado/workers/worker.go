@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-// procesa los correos
+// procesa los correos ejecutandose concurrente
 func Worker(emailFiles chan string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for filePath := range emailFiles {
