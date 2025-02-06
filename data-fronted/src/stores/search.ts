@@ -1,19 +1,5 @@
+import type { ApiResponse, Email } from '@/components/type';
 import { defineStore } from 'pinia';
-
-interface Email {
-  subject: string;
-  from: string;
-  to: string;
-  body: string;
-}
-
-interface ApiResponse {
-  results: Email[];
-  total_results: number;
-  page: number;
-  total_pages: number;
-  results_per_page: number;
-}
 
 export const useSearchStore = defineStore('search', {
   state: () => ({
@@ -44,7 +30,7 @@ export const useSearchStore = defineStore('search', {
           },
           body: JSON.stringify({
             term: query,
-            // field: '_all',
+            field: '_all',
           }),
         });
 
@@ -52,7 +38,6 @@ export const useSearchStore = defineStore('search', {
           throw new Error('Error al buscar los datos');
         }
 
-        // Analizando la respuesta
         const data: ApiResponse = await response.json();
         
         // Actualizando el estado con los resultados de la API
@@ -69,14 +54,12 @@ export const useSearchStore = defineStore('search', {
     },
 
     // Acción para avanzar a la siguiente página
-   // Acción para avanzar a la siguiente página
   nextPage() {
     if (this.currentPage < this.totalPages) {
     this.fetchResults(this.query, this.currentPage + 1, this.resultsPerPage);
    }
   },
 
-// Acción para retroceder a la página anterior
   prevPage() {
     if (this.currentPage > 1) {
       this.fetchResults(this.query, this.currentPage - 1, this.resultsPerPage);
