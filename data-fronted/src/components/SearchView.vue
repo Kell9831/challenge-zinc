@@ -1,3 +1,106 @@
+<script lang="ts">
+import { ref, computed } from 'vue';
+import { useSearchStore } from '@/stores/search';
+
+export interface Email {
+  subject: string;
+  from: string;
+  to: string;
+  body: string;
+}
+
+export default {
+  setup() {
+    const store = useSearchStore();
+
+    const query = ref<string>('');
+    const selectedRow = ref<number | null>(null);
+
+    let debounceTimeout: any = null;
+
+    const debouncedSearch = () => {
+  clearTimeout(debounceTimeout);
+  debounceTimeout = setTimeout(() => {
+    store.query = query.value;
+    
+    if (!store.query.trim()) {
+      store.results = [];
+      store.totalResults = 0;
+      store.totalPages = 0;
+      store.currentPage = 1;
+      store.isLoading = false; 
+      return;
+    }
+
+    store.fetchResults(store.query, 1, store.resultsPerPage);
+  }, 500);
+};
+
+    // Función para manejar el cambio de tamaño
+    const fetchData = () => {
+      store.fetchResults(query.value, 1, store.resultsPerPage);
+    };
+
+    // Sincronizar `resultsPerPage` entre el componente y la tienda
+    const resultsPerPage = computed({
+      get: () => store.resultsPerPage,
+      set: (value: number) => {
+        store.resultsPerPage = value; 
+        fetchData(); 
+      },
+    });
+
+
+    const selectRow = (index: number) => {
+      selectedRow.value = index;
+    };
+
+    const nextPage = () => {
+      store.nextPage();
+    };
+
+    const prevPage = () => {
+      store.prevPage();
+    };
+
+    const paddedResults = computed<Email[]>(() => {
+      const padding = Math.max(0, 10 - store.results.length);
+      return [...store.results, ...Array(padding).fill(null)];
+    });
+
+    const selectedEmail = computed<Email | null>(() =>
+      selectedRow.value !== null ? store.results[selectedRow.value] : null
+    );
+
+    const highlightBody = (body: string) => {
+      if (!query.value) return body;
+      const regex = new RegExp(`(${query.value})`, 'gi');
+      return body.replace(regex, '<strong>$1</strong>');
+    };
+
+    return {
+      query,
+      debouncedSearch,
+      resultsPerPage,
+      selectRow,
+      nextPage,
+      prevPage,
+      paddedResults,
+      selectedRow,
+      selectedEmail,
+      highlightBody,
+      fetchData,
+      results: computed(() => store.results),
+      totalResults: computed(() => store.totalResults),
+      totalPages: computed(() => store.totalPages),
+      currentPage: computed(() => store.currentPage),
+      isLoading: computed(() => store.isLoading),
+      error: computed(() => store.error),
+    };
+  },
+};
+</script>
+
 <template>
   <div class="flex">
 
@@ -78,95 +181,5 @@
   </div>
 </template>
 
-<script lang="ts">
-import { ref, computed } from 'vue';
-import { useSearchStore } from '@/stores/search';
 
-export interface Email {
-  subject: string;
-  from: string;
-  to: string;
-  body: string;
-}
-
-export default {
-  setup() {
-    const store = useSearchStore();
-
-    const query = ref<string>('');
-    const selectedRow = ref<number | null>(null);
-
-    let debounceTimeout: any = null;
-
-    const debouncedSearch = () => {
-      clearTimeout(debounceTimeout);
-      debounceTimeout = setTimeout(() => {
-        store.query = query.value; // Actualiza el query en el store
-        store.fetchResults(store.query, 1, store.resultsPerPage);
-      }, 500);
-    };
-    // Función para manejar el cambio de tamaño
-    const fetchData = () => {
-      store.fetchResults(query.value, 1, store.resultsPerPage);
-    };
-
-    // Sincronizar `resultsPerPage` entre el componente y la tienda
-    const resultsPerPage = computed({
-      get: () => store.resultsPerPage,
-      set: (value: number) => {
-        store.resultsPerPage = value; 
-        fetchData(); 
-      },
-    });
-
-
-    const selectRow = (index: number) => {
-      selectedRow.value = index;
-    };
-
-    const nextPage = () => {
-      store.nextPage();
-    };
-
-    const prevPage = () => {
-      store.prevPage();
-    };
-
-    const paddedResults = computed<Email[]>(() => {
-      const padding = Math.max(0, 10 - store.results.length);
-      return [...store.results, ...Array(padding).fill(null)];
-    });
-
-    const selectedEmail = computed<Email | null>(() =>
-      selectedRow.value !== null ? store.results[selectedRow.value] : null
-    );
-
-    const highlightBody = (body: string) => {
-      if (!query.value) return body;
-      const regex = new RegExp(`(${query.value})`, 'gi');
-      return body.replace(regex, '<strong>$1</strong>');
-    };
-
-    return {
-      query,
-      debouncedSearch,
-      resultsPerPage,
-      selectRow,
-      nextPage,
-      prevPage,
-      paddedResults,
-      selectedRow,
-      selectedEmail,
-      highlightBody,
-      fetchData,
-      results: computed(() => store.results),
-      totalResults: computed(() => store.totalResults),
-      totalPages: computed(() => store.totalPages),
-      currentPage: computed(() => store.currentPage),
-      isLoading: computed(() => store.isLoading),
-      error: computed(() => store.error),
-    };
-  },
-};
-</script>
 
